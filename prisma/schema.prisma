@@ -1,0 +1,1150 @@
+// Marketplace Agro — Prisma Schema
+// Prisma 7 — datasource URL en prisma.config.ts / .env
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── ENUMS ────────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  comprador
+  comprador_corporativo
+  vendedor
+  fabricante
+  distribuidor
+  asesor
+  logistica
+  regulatorio
+  finanzas
+  soporte
+  marketing
+  admin
+}
+
+enum CompanyType {
+  compradora
+  vendedora
+  fabricante
+  distribuidora
+}
+
+enum OrderStatus {
+  pendiente
+  confirmada
+  en_preparacion
+  despachada
+  en_transito
+  entregada
+  cancelada
+  en_reclamo
+  devuelta
+}
+
+enum RegulatoryStatus {
+  pendiente
+  aprobado
+  rechazado
+  vencido
+  bloqueado
+}
+
+enum DocumentType {
+  ficha_tecnica
+  sds
+  etiqueta
+  certificado_calidad
+  certificado_origen
+  registro_sanitario
+  otro
+}
+
+enum RFQStatus {
+  borrador
+  abierta
+  cerrada
+  aceptada
+  cancelada
+}
+
+enum RFQType {
+  estandar
+  sourcing
+}
+
+enum ApprovalStatus {
+  pendiente
+  aprobado
+  rechazado
+  ajuste_solicitado
+}
+
+enum CreditStatus {
+  activo
+  suspendido
+  bloqueado
+}
+
+enum ContractStatus {
+  borrador
+  activo
+  vencido
+  cancelado
+}
+
+enum TicketType {
+  consulta
+  reclamo
+  garantia
+  tecnico
+}
+
+enum TicketStatus {
+  abierto
+  en_atencion
+  resuelto
+  cerrado
+}
+
+enum TicketPriority {
+  baja
+  media
+  alta
+  critica
+}
+
+enum DiagnosticStatus {
+  recibido
+  asignado
+  en_proceso
+  respondido
+  cerrado
+}
+
+enum DiagnosticUrgency {
+  alta
+  media
+  baja
+}
+
+enum IncidentType {
+  retraso
+  danio
+  extravio
+  rechazo_destino
+}
+
+enum IncidentStatus {
+  reportado
+  en_gestion
+  resuelto
+}
+
+enum CampaignType {
+  cupon
+  descuento_directo
+  producto_destacado
+  banner
+}
+
+enum SedeType {
+  sede_central
+  finca
+  sucursal
+  deposito
+}
+
+// ─── USUARIOS Y EMPRESAS ─────────────────────────────────────────────────────
+
+model User {
+  id               String    @id @default(cuid())
+  email            String    @unique
+  emailVerified    DateTime?
+  passwordHash     String?
+  role             UserRole  @default(comprador)
+  companyId        String?
+  verified         Boolean   @default(false)
+  suspended        Boolean   @default(false)
+  twoFactorSecret  String?
+  twoFactorEnabled Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  company             Company?      @relation(fields: [companyId], references: [id])
+  profile             UserProfile?
+  companyUsers        CompanyUser[]
+  orders              Order[]
+  cart                Cart?
+  rfqs                RFQ[]
+  reviews             Review[]
+  diagnostics         Diagnostic[]
+  tickets             Ticket[]
+  assignedTickets     Ticket[]       @relation("AssignedTickets")
+  blogPosts           BlogPost[]
+  auditLogs           AuditLog[]
+  documents           Document[]     @relation("UploadedDocuments")
+  approvedDocs        Document[]     @relation("ApprovedDocuments")
+  approvals           Approval[]     @relation("SolicitanteApprovals")
+  approvedApprovals   Approval[]     @relation("AprobadorApprovals")
+  expertProfile       Expert?
+  assignedDiagnostics Diagnostic[]   @relation("AsignedDiagnostics")
+  settlements         Settlement[]
+  accounts            Account[]
+  sessions            Session[]
+
+  @@index([email])
+  @@index([role])
+  @@index([companyId])
+}
+
+model UserProfile {
+  id          String  @id @default(cuid())
+  userId      String  @unique
+  firstName   String
+  lastName    String
+  phone       String?
+  country     String?
+  cropTypes   String[]
+  volumeRange String?
+  avatarUrl   String?
+  bio         String?
+
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Auth.js v5 required models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Company {
+  id             String      @id @default(cuid())
+  name           String
+  commercialName String?
+  nit            String?
+  type           CompanyType
+  country        String
+  address        String?
+  city           String?
+  logoUrl        String?
+  description    String?
+  verified       Boolean     @default(false)
+  suspended      Boolean     @default(false)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  users           User[]
+  companyUsers    CompanyUser[]
+  sedes           Sede[]
+  centrosCosto    CentroCosto[]
+  vendor          Vendor?
+  credit          Credit?
+  contracts       Contract[]   @relation("BuyerContracts")
+  vendorContracts Contract[]   @relation("VendorContracts")
+  approvals       Approval[]
+  orders          Order[]      @relation("CompanyOrders")
+
+  @@index([type])
+  @@index([country])
+}
+
+model CompanyUser {
+  id            String      @id @default(cuid())
+  companyId     String
+  userId        String
+  role          String
+  purchaseLimit Float?
+  defaultSedeId String?
+  defaultCCId   String?
+  createdAt     DateTime    @default(now())
+
+  company       Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  defaultSede   Sede?       @relation(fields: [defaultSedeId], references: [id])
+  defaultCC     CentroCosto? @relation(fields: [defaultCCId], references: [id])
+
+  @@unique([companyId, userId])
+  @@index([companyId])
+}
+
+model Sede {
+  id          String   @id @default(cuid())
+  companyId   String
+  name        String
+  type        SedeType @default(finca)
+  country     String
+  state       String?
+  city        String?
+  address     String?
+  latitude    Float?
+  longitude   Float?
+  cropTypes   String[]
+  areaTotalHa Float?
+  managerId   String?
+  createdAt   DateTime @default(now())
+
+  company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  companyUsers CompanyUser[]
+
+  @@index([companyId])
+}
+
+model CentroCosto {
+  id           String   @id @default(cuid())
+  companyId    String
+  code         String
+  name         String
+  budget       Float?
+  currentSpend Float    @default(0)
+  createdAt    DateTime @default(now())
+
+  company      Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  companyUsers CompanyUser[]
+
+  @@unique([companyId, code])
+  @@index([companyId])
+}
+
+// ─── CATÁLOGO ────────────────────────────────────────────────────────────────
+
+model Category {
+  id          String     @id @default(cuid())
+  slug        String     @unique
+  name        String
+  description String?
+  iconUrl     String?
+  imageUrl    String?
+  parentId    String?
+  sortOrder   Int        @default(0)
+  createdAt   DateTime   @default(now())
+
+  parent      Category?  @relation("SubCategories", fields: [parentId], references: [id])
+  children    Category[] @relation("SubCategories")
+  products    Product[]
+
+  @@index([parentId])
+  @@index([slug])
+}
+
+model Brand {
+  id             String   @id @default(cuid())
+  slug           String   @unique
+  name           String
+  logoUrl        String?
+  manufacturerId String?
+  country        String?
+  createdAt      DateTime @default(now())
+
+  manufacturer   Vendor?  @relation(fields: [manufacturerId], references: [id])
+  products       Product[]
+
+  @@index([slug])
+}
+
+model Product {
+  id                 String           @id @default(cuid())
+  slug               String           @unique
+  name               String
+  technicalName      String?
+  activeIngredient   String?
+  concentration      String?
+  formulation        String?
+  modeOfAction       String?
+  chemicalGroup      String?
+  brandId            String?
+  categoryId         String
+  description        String?
+  technicalDesc      String?
+  cropTypes          String[]
+  targetPests        String[]
+  applicationMethods String[]
+  withdrawalPeriod   String?
+  reentryInterval    String?
+  compatible         String[]
+  incompatible       String[]
+  isRegulated        Boolean          @default(true)
+  isBiological       Boolean          @default(false)
+  isOrganic          Boolean          @default(false)
+  status             RegulatoryStatus @default(pendiente)
+  publishedAt        DateTime?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  brand             Brand?             @relation(fields: [brandId], references: [id])
+  category          Category           @relation(fields: [categoryId], references: [id])
+  variants          ProductVariant[]
+  vendorListings    ProductVendor[]
+  regulatoryRecords RegulatoryRecord[]
+  documents         Document[]
+  reviews           Review[]
+  rfqItems          RFQItem[]
+  orderItems        OrderItem[]
+
+  @@index([slug])
+  @@index([categoryId])
+  @@index([brandId])
+  @@index([status])
+}
+
+model ProductVariant {
+  id           String   @id @default(cuid())
+  productId    String
+  sku          String   @unique
+  presentation String
+  unit         String
+  basePrice    Float
+  stock        Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  product      Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
+  priceVolumes ProductPriceVolume[]
+  cartItems    CartItem[]
+  orderItems   OrderItem[]
+
+  @@index([productId])
+  @@index([sku])
+}
+
+model ProductPriceVolume {
+  id        String @id @default(cuid())
+  variantId String
+  minQty    Int
+  maxQty    Int?
+  price     Float
+  discount  Float  @default(0)
+
+  variant   ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@index([variantId])
+}
+
+model Vendor {
+  id              String   @id @default(cuid())
+  companyId       String   @unique
+  slug            String   @unique
+  description     String?
+  rating          Float    @default(0)
+  totalSales      Int      @default(0)
+  fulfillmentRate Float    @default(0)
+  verified        Boolean  @default(false)
+  countries       String[]
+  categories      String[]
+  bankAccount     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  company      Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  products     ProductVendor[]
+  brands       Brand[]
+  orders       Order[]
+  rfqOffers    RFQOffer[]
+  contracts    Contract[]     @relation("VendorListings")
+  settlements  Settlement[]
+
+  @@index([slug])
+  @@index([companyId])
+}
+
+model ProductVendor {
+  id           String   @id @default(cuid())
+  productId    String
+  vendorId     String
+  companyId    String?
+  price        Float
+  stock        Int      @default(0)
+  deliveryDays Int      @default(5)
+  countries    String[]
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  vendor       Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, vendorId, companyId])
+  @@index([productId])
+  @@index([vendorId])
+  @@index([companyId])
+}
+
+// ─── REGULATORIO ─────────────────────────────────────────────────────────────
+
+model RegulatoryRecord {
+  id              String           @id @default(cuid())
+  productId       String
+  country         String
+  authority       String
+  registrationNum String
+  issuedAt        DateTime
+  expiresAt       DateTime
+  status          RegulatoryStatus @default(pendiente)
+  restrictions    String?
+  officialDocUrl  String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  product         Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, country])
+  @@index([productId])
+  @@index([country])
+  @@index([status])
+  @@index([expiresAt])
+}
+
+model Document {
+  id           String           @id @default(cuid())
+  productId    String
+  type         DocumentType
+  country      String?
+  title        String
+  fileUrl      String
+  version      Int              @default(1)
+  status       RegulatoryStatus @default(pendiente)
+  uploadedById String
+  approvedById String?
+  approvedAt   DateTime?
+  expiresAt    DateTime?
+  notes        String?
+  createdAt    DateTime         @default(now())
+
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  uploadedBy   User     @relation("UploadedDocuments", fields: [uploadedById], references: [id])
+  approvedBy   User?    @relation("ApprovedDocuments", fields: [approvedById], references: [id])
+
+  @@index([productId])
+  @@index([type])
+  @@index([status])
+}
+
+// ─── CARRITO Y ÓRDENES ───────────────────────────────────────────────────────
+
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String     @unique
+  country   String     @default("CO")
+  updatedAt DateTime   @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  cartId    String
+  variantId String
+  vendorId  String
+  quantity  Int      @default(1)
+  addedAt   DateTime @default(now())
+
+  cart      Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  variant   ProductVariant @relation(fields: [variantId], references: [id])
+
+  @@unique([cartId, variantId, vendorId])
+  @@index([cartId])
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  buyerId         String
+  vendorId        String
+  companyId       String?
+  status          OrderStatus @default(pendiente)
+  totalAmount     Float
+  subtotal        Float
+  shippingCost    Float       @default(0)
+  taxAmount       Float       @default(0)
+  discount        Float       @default(0)
+  currency        String      @default("USD")
+  country         String
+  deliveryAddress Json
+  billingData     Json?
+  paymentMethod   String?
+  paymentIntentId String?
+  creditUsed      Float       @default(0)
+  invoiceUrl      String?
+  notes           String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  buyer      User         @relation(fields: [buyerId], references: [id])
+  vendor     Vendor       @relation(fields: [vendorId], references: [id])
+  company    Company?     @relation("CompanyOrders", fields: [companyId], references: [id])
+  items      OrderItem[]
+  tracking   Tracking?
+  payment    Payment?
+  tickets    Ticket[]
+  approval   Approval?
+  commission Commission?
+
+  @@index([buyerId])
+  @@index([vendorId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([companyId])
+}
+
+model OrderItem {
+  id        String @id @default(cuid())
+  orderId   String
+  productId String
+  variantId String
+  vendorId  String
+  quantity  Int
+  unitPrice Float
+  subtotal  Float
+  loteId    String?
+
+  order     Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product        @relation(fields: [productId], references: [id])
+  variant   ProductVariant @relation(fields: [variantId], references: [id])
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  productId String
+  buyerId   String
+  orderId   String?
+  rating    Int
+  comment   String?
+  cropUsed  String?
+  createdAt DateTime @default(now())
+
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  buyer     User     @relation(fields: [buyerId], references: [id])
+
+  @@unique([productId, buyerId, orderId])
+  @@index([productId])
+}
+
+// ─── RFQ / COTIZACIONES ──────────────────────────────────────────────────────
+
+model RFQ {
+  id              String    @id @default(cuid())
+  buyerId         String
+  name            String
+  reference       String?
+  type            RFQType   @default(estandar)
+  status          RFQStatus @default(borrador)
+  deliveryCountry String
+  deliveryCity    String?
+  deliveryAddress String?
+  requiredDate    DateTime?
+  deadline        DateTime?
+  paymentTerms    String?
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  buyer  User       @relation(fields: [buyerId], references: [id])
+  items  RFQItem[]
+  offers RFQOffer[]
+
+  @@index([buyerId])
+  @@index([status])
+}
+
+model RFQItem {
+  id           String   @id @default(cuid())
+  rfqId        String
+  productId    String?
+  productName  String
+  quantity     Float
+  unit         String
+  presentation String?
+  specs        String?
+  requiredDocs String[]
+
+  rfq     RFQ      @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id])
+
+  @@index([rfqId])
+}
+
+model RFQOffer {
+  id           String         @id @default(cuid())
+  rfqId        String
+  vendorId     String
+  totalAmount  Float
+  shippingCost Float          @default(0)
+  paymentTerms String?
+  deliveryDays Int
+  validUntil   DateTime?
+  status       ApprovalStatus @default(pendiente)
+  notes        String?
+  items        Json
+  createdAt    DateTime       @default(now())
+
+  rfq    RFQ    @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  vendor Vendor @relation(fields: [vendorId], references: [id])
+
+  @@unique([rfqId, vendorId])
+  @@index([rfqId])
+  @@index([vendorId])
+}
+
+// ─── B2B EMPRESARIAL ─────────────────────────────────────────────────────────
+
+model ApprovalRule {
+  id          String  @id @default(cuid())
+  companyId   String
+  name        String
+  minAmount   Float?
+  isNewVendor Boolean @default(false)
+  ccThreshold Float?
+  approverId  String
+  escalateId  String?
+  escalateMin Float?
+
+  @@index([companyId])
+}
+
+model Approval {
+  id            String         @id @default(cuid())
+  companyId     String
+  solicitanteId String
+  aprobadorId   String?
+  orderId       String?        @unique
+  amount        Float
+  status        ApprovalStatus @default(pendiente)
+  ruleApplied   String?
+  comment       String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  company      Company  @relation(fields: [companyId], references: [id])
+  solicitante  User     @relation("SolicitanteApprovals", fields: [solicitanteId], references: [id])
+  aprobador    User?    @relation("AprobadorApprovals", fields: [aprobadorId], references: [id])
+  order        Order?   @relation(fields: [orderId], references: [id])
+
+  @@index([companyId])
+  @@index([status])
+}
+
+model Contract {
+  id              String         @id @default(cuid())
+  buyerCompanyId  String
+  vendorId        String
+  vendorCompanyId String
+  status          ContractStatus @default(borrador)
+  startDate       DateTime
+  endDate         DateTime
+  paymentTerms    String?
+  currency        String         @default("USD")
+  shippingTerms   String?
+  warrantyTerms   String?
+  specialClauses  String?
+  signedDocUrl    String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  buyerCompany  Company        @relation("BuyerContracts", fields: [buyerCompanyId], references: [id])
+  vendorCompany Company        @relation("VendorContracts", fields: [vendorCompanyId], references: [id])
+  vendor        Vendor         @relation("VendorListings", fields: [vendorId], references: [id])
+  items         ContractItem[]
+
+  @@index([buyerCompanyId])
+  @@index([vendorId])
+  @@index([status])
+}
+
+model ContractItem {
+  id           String   @id @default(cuid())
+  contractId   String
+  productId    String?
+  productName  String
+  pactedPrice  Float
+  minVolume    Float?
+  maxVolume    Float?
+  unit         String
+
+  contract     Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([contractId])
+}
+
+model Credit {
+  id              String       @id @default(cuid())
+  companyId       String       @unique
+  totalLimit      Float
+  usedAmount      Float        @default(0)
+  paymentTermDays Int          @default(30)
+  status          CreditStatus @default(activo)
+  analystId       String?
+  approvedAt      DateTime?
+  nextReview      DateTime?
+  guaranteeType   String?
+  notes           String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  company         Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([status])
+}
+
+model RecurringOrder {
+  id         String   @id @default(cuid())
+  buyerId    String
+  name       String
+  items      Json
+  frequency  String
+  nextRunAt  DateTime
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  @@index([buyerId])
+  @@index([nextRunAt])
+}
+
+// ─── LOGÍSTICA ───────────────────────────────────────────────────────────────
+
+model Tracking {
+  id               String    @id @default(cuid())
+  orderId          String    @unique
+  carrier          String?
+  trackingNumber   String?
+  status           String    @default("pendiente")
+  estimatedDate    DateTime?
+  deliveredAt      DateTime?
+  recipientName    String?
+  recipientId      String?
+  signatureUrl     String?
+  deliveryPhotoUrl String?
+  productCondition String?
+  events           Json      @default("[]")
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  order            Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model Lote {
+  id                String    @id @default(cuid())
+  vendorId          String
+  productId         String
+  loteCode          String
+  quantity          Float
+  unit              String
+  manufacturedAt    DateTime?
+  expiresAt         DateTime?
+  certUrl           String?
+  warehouseLocation String?
+  isActive          Boolean   @default(true)
+  createdAt         DateTime  @default(now())
+
+  @@unique([vendorId, loteCode])
+  @@index([vendorId])
+  @@index([productId])
+  @@index([expiresAt])
+}
+
+model Incident {
+  id           String         @id @default(cuid())
+  orderId      String
+  type         IncidentType
+  status       IncidentStatus @default(reportado)
+  description  String
+  evidenceUrls String[]
+  resolution   String?
+  resolvedAt   DateTime?
+  createdAt    DateTime       @default(now())
+
+  @@index([orderId])
+  @@index([status])
+}
+
+// ─── FINANCIERO ──────────────────────────────────────────────────────────────
+
+model Payment {
+  id             String    @id @default(cuid())
+  orderId        String    @unique
+  method         String
+  stripeIntentId String?
+  amount         Float
+  currency       String    @default("USD")
+  status         String    @default("pendiente")
+  confirmedAt    DateTime?
+  refundedAmount Float     @default(0)
+  createdAt      DateTime  @default(now())
+
+  order          Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model Commission {
+  id           String   @id @default(cuid())
+  orderId      String   @unique
+  vendorId     String
+  amount       Float
+  rate         Float
+  settled      Boolean  @default(false)
+  settlementId String?
+  createdAt    DateTime @default(now())
+
+  order        Order    @relation(fields: [orderId], references: [id])
+
+  @@index([vendorId])
+  @@index([settled])
+}
+
+model Settlement {
+  id               String    @id @default(cuid())
+  vendorId         String
+  analystId        String
+  period           String
+  grossAmount      Float
+  commissionAmount Float
+  returnsAmount    Float     @default(0)
+  retentionAmount  Float     @default(0)
+  netAmount        Float
+  status           String    @default("pendiente")
+  proofUrl         String?
+  paidAt           DateTime?
+  createdAt        DateTime  @default(now())
+
+  vendor           Vendor    @relation(fields: [vendorId], references: [id])
+  analyst          User      @relation(fields: [analystId], references: [id])
+
+  @@index([vendorId])
+  @@index([status])
+}
+
+// ─── ASESORÍA AGRONÓMICA ─────────────────────────────────────────────────────
+
+model Expert {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  title         String?
+  specialties   String[]
+  cropTypes     String[]
+  countries     String[]
+  regions       String[]
+  rating        Float    @default(0)
+  totalConsults Int      @default(0)
+  isAvailable   Boolean  @default(true)
+  availability  Json?
+  bioUrl        String?
+  createdAt     DateTime @default(now())
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Diagnostic {
+  id                    String            @id @default(cuid())
+  buyerId               String
+  expertId              String?
+  cropType              String
+  phenologicalStage     String?
+  country               String
+  region                String?
+  areaHa                Float?
+  problemType           String
+  description           String
+  symptoms              String[]
+  photoUrls             String[]
+  photoDescriptions     String[]
+  lastApplication       String?
+  soilAnalysisUrl       String?
+  urgency               DiagnosticUrgency @default(media)
+  status                DiagnosticStatus  @default(recibido)
+  diagnosisText         String?
+  cause                 String?
+  recommendedProducts   Json?
+  technicalPlan         String?
+  fieldVisitRequired    Boolean           @default(false)
+  respondedAt           DateTime?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  buyer                 User              @relation(fields: [buyerId], references: [id])
+  expert                User?             @relation("AsignedDiagnostics", fields: [expertId], references: [id])
+
+  @@index([buyerId])
+  @@index([expertId])
+  @@index([status])
+}
+
+model AgroKnowledge {
+  id                       String   @id @default(cuid())
+  type                     String
+  name                     String
+  slug                     String   @unique
+  cropTypes                String[]
+  description              String?
+  symptoms                 String?
+  causes                   String?
+  conditions               String?
+  photoUrls                String[]
+  recommendedProductIds    String[]
+  createdAt                DateTime @default(now())
+
+  @@index([type])
+  @@index([slug])
+}
+
+// ─── SOPORTE ──────────────────────────────────────────────────────────────────
+
+model Ticket {
+  id           String         @id @default(cuid())
+  buyerId      String
+  vendorId     String?
+  orderId      String?
+  assignedToId String?
+  type         TicketType
+  priority     TicketPriority @default(media)
+  status       TicketStatus   @default(abierto)
+  subject      String
+  slaHours     Int            @default(24)
+  resolvedAt   DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  buyer        User           @relation(fields: [buyerId], references: [id])
+  assignedTo   User?          @relation("AssignedTickets", fields: [assignedToId], references: [id])
+  order        Order?         @relation(fields: [orderId], references: [id])
+  messages     TicketMessage[]
+
+  @@index([buyerId])
+  @@index([status])
+  @@index([assignedToId])
+}
+
+model TicketMessage {
+  id          String   @id @default(cuid())
+  ticketId    String
+  authorId    String
+  content     String
+  isInternal  Boolean  @default(false)
+  attachments String[]
+  createdAt   DateTime @default(now())
+
+  ticket      Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+}
+
+// ─── CONTENIDO ───────────────────────────────────────────────────────────────
+
+model BlogPost {
+  id                  String    @id @default(cuid())
+  slug                String    @unique
+  title               String
+  excerpt             String?
+  content             String
+  coverImageUrl       String?
+  authorId            String
+  category            String?
+  tags                String[]
+  metaTitle           String?
+  metaDescription     String?
+  mentionedProductIds String[]
+  published           Boolean   @default(false)
+  publishedAt         DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  author              User      @relation(fields: [authorId], references: [id])
+
+  @@index([slug])
+  @@index([published])
+  @@index([publishedAt])
+}
+
+model Campaign {
+  id             String       @id @default(cuid())
+  name           String
+  type           CampaignType
+  couponCode     String?      @unique
+  discountRate   Float?
+  discountFixed  Float?
+  discountTarget String?
+  appliesTo      String?
+  categoryIds    String[]
+  productIds     String[]
+  minAmount      Float?
+  maxDiscount    Float?
+  maxUses        Int?
+  usesPerUser    Int          @default(1)
+  totalUses      Int          @default(0)
+  startsAt       DateTime
+  endsAt         DateTime
+  isActive       Boolean      @default(true)
+  bannerUrl      String?
+  bannerLink     String?
+  sortOrder      Int          @default(0)
+  createdAt      DateTime     @default(now())
+
+  @@index([isActive])
+  @@index([couponCode])
+  @@index([endsAt])
+}
+
+// ─── AUDITORÍA ───────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  userId       String
+  userRole     String
+  module       String
+  action       String
+  entityType   String
+  entityId     String
+  ipAddress    String?
+  userAgent    String?
+  fieldsBefore Json?
+  fieldsAfter  Json?
+  comment      String?
+  createdAt    DateTime @default(now())
+
+  user         User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([module])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}

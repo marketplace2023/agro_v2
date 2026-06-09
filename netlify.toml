@@ -1,0 +1,12 @@
+[build]
+  command   = "npm run build"
+  publish   = ".next"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[functions]
+  included_files = ["prisma/**", "src/generated/prisma/**"]
+
+[build.environment]
+  NODE_VERSION = "20"

@@ -1,26 +1,358 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
 
+/* ─── DESIGN TOKENS — Agro-Industrial Precision ─────────────────────────────── */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Colors — Primary (teal/blue) */
+  --color-primary:           #005c72;
+  --color-primary-container: #007692;
+  --color-on-primary:        #ffffff;
+  --color-on-primary-container: #d9f3ff;
+  --color-inverse-primary:   #7dd2f1;
+  --color-primary-fixed:     #b8eaff;
+  --color-primary-fixed-dim: #7dd2f1;
+
+  /* Colors — Secondary (red CTA) */
+  --color-secondary:           #bc000a;
+  --color-secondary-container: #e3221e;
+  --color-on-secondary:        #ffffff;
+  --color-on-secondary-container: #fffbff;
+  --color-secondary-fixed:     #ffdad5;
+  --color-secondary-fixed-dim: #ffb4aa;
+
+  /* Colors — Tertiary (navy) */
+  --color-tertiary:           #484d94;
+  --color-tertiary-container: #6166ae;
+  --color-on-tertiary:        #ffffff;
+  --color-on-tertiary-container: #efedff;
+  --color-tertiary-fixed:     #e0e0ff;
+  --color-tertiary-fixed-dim: #bec2ff;
+
+  /* Colors — Surface */
+  --color-surface:                  #faf9fa;
+  --color-surface-dim:              #dbdadb;
+  --color-surface-bright:           #faf9fa;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low:    #f4f3f4;
+  --color-surface-container:        #efedee;
+  --color-surface-container-high:   #e9e8e9;
+  --color-surface-container-highest:#e3e2e3;
+  --color-surface-variant:          #e3e2e3;
+  --color-surface-tint:             #006780;
+  --color-on-surface:               #1a1c1d;
+  --color-on-surface-variant:       #3f484c;
+  --color-inverse-surface:          #2f3031;
+  --color-inverse-on-surface:       #f2f0f1;
+
+  /* Colors — Outline */
+  --color-outline:         #6f797d;
+  --color-outline-variant: #bec8cd;
+
+  /* Colors — Semantic */
+  --color-agri-green:    #2B5F2B;
+  --color-background:    #faf9fa;
+  --color-background-alt:#F7F7F7;
+  --color-border-subtle: #E5E5E5;
+  --color-rating-stars:  #FF9C23;
+
+  /* Colors — Error */
+  --color-error:           #ba1a1a;
+  --color-on-error:        #ffffff;
+  --color-error-container: #ffdad6;
+  --color-on-error-container: #93000a;
+
+  /* Typography — Fonts */
+  --font-headline: var(--font-hanken-grotesk), "Hanken Grotesk", sans-serif;
+  --font-body:     var(--font-open-sans), "Open Sans", sans-serif;
+  --font-label:    var(--font-inter), "Inter", sans-serif;
+
+  /* Typography — Scale */
+  --text-headline-xl:   2.5rem;   /* 40px */
+  --text-headline-lg:   2rem;     /* 32px */
+  --text-headline-md:   1.5rem;   /* 24px */
+  --text-body-lg:       1.125rem; /* 18px */
+  --text-body-md:       1rem;     /* 16px */
+  --text-body-sm:       0.875rem; /* 14px */
+  --text-label-lg:      0.875rem; /* 14px */
+  --text-label-md:      0.75rem;  /* 12px */
+  --text-price-display: 1.75rem;  /* 28px */
+
+  /* Border Radius */
+  --radius-sm:   0.125rem; /* 2px */
+  --radius:      0.25rem;  /* 4px — standard UI: inputs, buttons */
+  --radius-md:   0.375rem; /* 6px */
+  --radius-lg:   0.5rem;   /* 8px — cards */
+  --radius-xl:   0.75rem;  /* 12px */
+  --radius-full: 9999px;
+
+  /* Spacing */
+  --spacing-base:           0.5rem;  /* 8px */
+  --spacing-margin-mobile:  1rem;    /* 16px */
+  --spacing-margin-desktop: 3rem;    /* 48px */
+  --spacing-gutter:         1.5rem;  /* 24px */
+  --max-width-content:      80rem;   /* 1280px */
+
+  /* Shadows */
+  --shadow-card-hover: 0px 4px 12px rgba(0,0,0,0.05);
+  --font-heading:           var(--font-sans);
+  --font-sans:           var(--font-sans);
+  --color-sidebar-ring:           var(--sidebar-ring);
+  --color-sidebar-border:           var(--sidebar-border);
+  --color-sidebar-accent-foreground:           var(--sidebar-accent-foreground);
+  --color-sidebar-accent:           var(--sidebar-accent);
+  --color-sidebar-primary-foreground:           var(--sidebar-primary-foreground);
+  --color-sidebar-primary:           var(--sidebar-primary);
+  --color-sidebar-foreground:           var(--sidebar-foreground);
+  --color-sidebar:           var(--sidebar);
+  --color-chart-5:           var(--chart-5);
+  --color-chart-4:           var(--chart-4);
+  --color-chart-3:           var(--chart-3);
+  --color-chart-2:           var(--chart-2);
+  --color-chart-1:           var(--chart-1);
+  --color-ring:           var(--ring);
+  --color-input:           var(--input);
+  --color-border:           var(--border);
+  --color-destructive:           var(--destructive);
+  --color-accent-foreground:           var(--accent-foreground);
+  --color-accent:           var(--accent);
+  --color-muted-foreground:           var(--muted-foreground);
+  --color-muted:           var(--muted);
+  --color-secondary-foreground:           var(--secondary-foreground);
+  --color-primary-foreground:           var(--primary-foreground);
+  --color-popover-foreground:           var(--popover-foreground);
+  --color-popover:           var(--popover);
+  --color-card-foreground:           var(--card-foreground);
+  --color-card:           var(--card);
+  --color-foreground:           var(--foreground);
+  --radius-2xl:           calc(var(--radius) * 1.8);
+  --radius-3xl:           calc(var(--radius) * 2.2);
+  --radius-4xl:           calc(var(--radius) * 2.6);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* ─── BASE STYLES ───────────────────────────────────────────────────────────── */
+body {
+  background-color: var(--color-background);
+  color: var(--color-on-surface);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-headline);
+}
+
+/* ─── TYPOGRAPHY UTILITIES ──────────────────────────────────────────────────── */
+.text-headline-xl {
+  font-family: var(--font-headline);
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 3rem;
+  letter-spacing: -0.02em;
+}
+
+.text-headline-lg {
+  font-family: var(--font-headline);
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 2.5rem;
+  letter-spacing: -0.01em;
+}
+
+.text-headline-md {
+  font-family: var(--font-headline);
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 2rem;
+}
+
+.text-price {
+  font-family: var(--font-headline);
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 2rem;
+}
+
+.text-label-lg {
+  font-family: var(--font-label);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.text-label-md {
+  font-family: var(--font-label);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1rem;
+}
+
+/* ─── MOBILE TYPOGRAPHY ─────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .text-headline-xl {
+    font-size: 2rem;
+    line-height: 2.5rem;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ─── COMPONENT BASE STYLES ─────────────────────────────────────────────────── */
+/* Product card hover elevation */
+.card-product {
+  background: #ffffff;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  transition: box-shadow 0.2s ease;
+}
+
+.card-product:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+
+/* Sticky header */
+.header-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--color-primary-container);
+  border-bottom: 1px solid rgba(255,255,255,0.15);
+}
+
+/* Max width container */
+.container-max {
+  max-width: var(--max-width-content);
+  margin-inline: auto;
+  padding-inline: var(--spacing-margin-desktop);
+}
+
+@media (max-width: 768px) {
+  .container-max {
+    padding-inline: var(--spacing-margin-mobile);
+  }
+}
+
+/* ─── BADGE STYLES ──────────────────────────────────────────────────────────── */
+.badge-regulated {
+  background-color: #d9f3ff;
+  color: var(--color-primary);
+  font-family: var(--font-label);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius-full);
+}
+
+.badge-biological {
+  background-color: #d4edda;
+  color: var(--color-agri-green);
+  font-family: var(--font-label);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius-full);
+}
+
+.badge-warning {
+  background-color: #fff3cd;
+  color: #856404;
+  font-family: var(--font-label);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius-full);
+}
+
+.badge-danger {
+  background-color: var(--color-error-container);
+  color: var(--color-error);
+  font-family: var(--font-label);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius-full);
+}
+
+:root {
+  --background:           oklch(1 0 0);
+  --foreground:           oklch(0.145 0 0);
+  --card:           oklch(1 0 0);
+  --card-foreground:           oklch(0.145 0 0);
+  --popover:           oklch(1 0 0);
+  --popover-foreground:           oklch(0.145 0 0);
+  --primary:           oklch(0.205 0 0);
+  --primary-foreground:           oklch(0.985 0 0);
+  --secondary:           oklch(0.97 0 0);
+  --secondary-foreground:           oklch(0.205 0 0);
+  --muted:           oklch(0.97 0 0);
+  --muted-foreground:           oklch(0.556 0 0);
+  --accent:           oklch(0.97 0 0);
+  --accent-foreground:           oklch(0.205 0 0);
+  --destructive:           oklch(0.577 0.245 27.325);
+  --border:           oklch(0.922 0 0);
+  --input:           oklch(0.922 0 0);
+  --ring:           oklch(0.708 0 0);
+  --chart-1:           oklch(0.87 0 0);
+  --chart-2:           oklch(0.556 0 0);
+  --chart-3:           oklch(0.439 0 0);
+  --chart-4:           oklch(0.371 0 0);
+  --chart-5:           oklch(0.269 0 0);
+  --radius:           0.625rem;
+  --sidebar:           oklch(0.985 0 0);
+  --sidebar-foreground:           oklch(0.145 0 0);
+  --sidebar-primary:           oklch(0.205 0 0);
+  --sidebar-primary-foreground:           oklch(0.985 0 0);
+  --sidebar-accent:           oklch(0.97 0 0);
+  --sidebar-accent-foreground:           oklch(0.205 0 0);
+  --sidebar-border:           oklch(0.922 0 0);
+  --sidebar-ring:           oklch(0.708 0 0);
+}
+
+.dark {
+  --background:           oklch(0.145 0 0);
+  --foreground:           oklch(0.985 0 0);
+  --card:           oklch(0.205 0 0);
+  --card-foreground:           oklch(0.985 0 0);
+  --popover:           oklch(0.205 0 0);
+  --popover-foreground:           oklch(0.985 0 0);
+  --primary:           oklch(0.922 0 0);
+  --primary-foreground:           oklch(0.205 0 0);
+  --secondary:           oklch(0.269 0 0);
+  --secondary-foreground:           oklch(0.985 0 0);
+  --muted:           oklch(0.269 0 0);
+  --muted-foreground:           oklch(0.708 0 0);
+  --accent:           oklch(0.269 0 0);
+  --accent-foreground:           oklch(0.985 0 0);
+  --destructive:           oklch(0.704 0.191 22.216);
+  --border:           oklch(1 0 0 / 10%);
+  --input:           oklch(1 0 0 / 15%);
+  --ring:           oklch(0.556 0 0);
+  --chart-1:           oklch(0.87 0 0);
+  --chart-2:           oklch(0.556 0 0);
+  --chart-3:           oklch(0.439 0 0);
+  --chart-4:           oklch(0.371 0 0);
+  --chart-5:           oklch(0.269 0 0);
+  --sidebar:           oklch(0.205 0 0);
+  --sidebar-foreground:           oklch(0.985 0 0);
+  --sidebar-primary:           oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground:           oklch(0.985 0 0);
+  --sidebar-accent:           oklch(0.269 0 0);
+  --sidebar-accent-foreground:           oklch(0.985 0 0);
+  --sidebar-border:           oklch(1 0 0 / 10%);
+  --sidebar-ring:           oklch(0.556 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
 }
