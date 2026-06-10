@@ -1,6 +1,10 @@
 import { PrismaClient } from "../src/generated/prisma";
 import { PrismaNeon } from "@prisma/adapter-neon";
+import { neonConfig } from "@neondatabase/serverless";
+import ws from "ws";
 import bcrypt from "bcryptjs";
+
+neonConfig.webSocketConstructor = ws;
 
 const adapter = new PrismaNeon({ connectionString: process.env.DATABASE_URL! });
 const prisma = new PrismaClient({ adapter } as ConstructorParameters<typeof PrismaClient>[0]);
@@ -191,11 +195,20 @@ async function main() {
   const passwordHash = await bcrypt.hash("Demo1234!", 10);
 
   const userDefs = [
-    { email: "comprador@demo.com", name: "Carlos", lastName: "Comprador", role: "comprador" as const },
-    { email: "vendedor@demo.com", name: "María", lastName: "Vendedora", role: "vendedor" as const },
-    { email: "admin@demo.com", name: "Admin", lastName: "Sistema", role: "admin" as const },
-    { email: "asesor@demo.com", name: "José", lastName: "Asesor", role: "asesor" as const },
-    { email: "regulatorio@demo.com", name: "Ana", lastName: "Regulatoria", role: "regulatorio" as const },
+    { email: "comprador@demo.com",     name: "Carlos",     lastName: "Comprador",    role: "comprador"     as const },
+    { email: "vendedor@demo.com",      name: "María",      lastName: "Vendedora",    role: "vendedor"      as const },
+    { email: "admin@demo.com",         name: "Admin",      lastName: "Sistema",      role: "admin"         as const },
+    { email: "asesor@demo.com",        name: "José",       lastName: "Asesor",       role: "asesor"        as const },
+    { email: "regulatorio@demo.com",   name: "Ana",        lastName: "Regulatoria",  role: "regulatorio"   as const },
+    { email: "fabricante@demo.com",    name: "Rodrigo",    lastName: "Fabricante",   role: "fabricante"    as const },
+    { email: "distribuidor@demo.com",  name: "Lucía",      lastName: "Distribuidora",role: "distribuidor"  as const },
+    { email: "logistica@demo.com",     name: "Jhon",       lastName: "Logística",    role: "logistica"     as const },
+    { email: "finanzas@demo.com",      name: "Claudia",    lastName: "Finanzas",     role: "finanzas"      as const },
+    { email: "soporte@demo.com",       name: "Sofía",      lastName: "Soporte",      role: "soporte"       as const },
+    { email: "marketing@demo.com",     name: "Daniel",     lastName: "Marketing",    role: "marketing"     as const },
+    { email: "almacen@demo.com",       name: "Pedro",      lastName: "Almacén",      role: "almacen"       as const },
+    { email: "representante@demo.com", name: "Camila",     lastName: "Representante",role: "representante" as const },
+    { email: "credito@demo.com",       name: "Beatriz",    lastName: "Crédito",      role: "credito"       as const },
   ];
 
   for (const u of userDefs) {

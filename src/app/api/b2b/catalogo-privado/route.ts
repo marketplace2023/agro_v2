@@ -54,7 +54,6 @@ export async function GET(req: NextRequest) {
           select: { price: true, stock: true, deliveryDays: true },
           take: 1,
         },
-        images: { take: 1, orderBy: { position: "asc" } },
       } as any,
       skip: (page - 1) * limit,
       take: limit,

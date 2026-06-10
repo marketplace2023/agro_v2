@@ -24,6 +24,9 @@ enum UserRole {
   finanzas
   soporte
   marketing
+  almacen
+  representante
+  credito
   admin
 }
 
