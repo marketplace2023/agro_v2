@@ -3,8 +3,7 @@ import { Hanken_Grotesk, Open_Sans, Inter, Geist } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Providers } from "@/components/providers";
-import { Header } from "@/components/layout/header";
-import { Footer } from "@/components/layout/footer";
+import { Shell } from "@/components/layout/shell";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -76,9 +75,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-[var(--color-background)] text-[var(--color-on-surface)]">
         <Providers>
-          <Header />
-          <main className="flex-1">{children}</main>
-          <Footer />
+          <Shell>{children}</Shell>
         </Providers>
       </body>
     </html>

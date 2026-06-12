@@ -100,8 +100,8 @@ export default function CreditoDashboard() {
                   <div>
                     <p className="text-xs font-semibold mb-2">Documentos</p>
                     <div className="flex flex-wrap gap-2">
-                      {app.documents.map((doc, i) => (
-                        <div key={i} className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg ${doc.status === "ok" ? "bg-green-50 text-green-700" : doc.status === "missing" ? "bg-orange-50 text-orange-700" : "bg-red-50 text-red-700"}`}>{doc.status === "ok" ? <CheckCircle size={10} /> : <AlertTriangle size={10} />} {doc.name}</div>
+                      {app.documents.map((doc) => (
+                        <div key={`${app.id}-${doc.name}`} className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg ${doc.status === "ok" ? "bg-green-50 text-green-700" : doc.status === "missing" ? "bg-orange-50 text-orange-700" : "bg-red-50 text-red-700"}`}>{doc.status === "ok" ? <CheckCircle size={10} /> : <AlertTriangle size={10} />} {doc.name}</div>
                       ))}
                     </div>
                   </div>

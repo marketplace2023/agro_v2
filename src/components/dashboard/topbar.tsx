@@ -23,11 +23,35 @@ const BREADCRUMB_LABELS: Record<string, string> = {
   faq: "FAQ", campanas: "Campañas", blog: "Blog", metricas: "Métricas",
   seo: "SEO", lotes: "Lotes", picking: "Picking", movimientos: "Movimientos",
   alertas: "Alertas", auditoria: "Auditoría", metas: "Metas", visitas: "Visitas",
-  capacitaciones: "Capacitaciones", region: "Región", solicitudes: "Solicitudes",
+  capacitaciones: "Capacitaciones", region: "Región", solicitudes: "Solicitudes de flete",
   historial: "Historial", usuarios: "Usuarios", configuracion: "Configuración",
   superadmin: "Superadmin",
   // actions
   nuevo: "Nuevo", nueva: "Nueva", editar: "Editar",
+  // CRM
+  crm: "CRM", empresas: "Empresas", contactos: "Contactos", leads: "Leads",
+  oportunidades: "Oportunidades", pipeline: "Pipeline", actividades: "Actividades",
+  agenda: "Agenda", segmentos: "Segmentos", reportes: "Reportes",
+  // Mensajería
+  mensajes: "Mensajes", notificaciones: "Notificaciones",
+  participantes: "Participantes", archivos: "Archivos", tareas: "Tareas",
+  // Logística
+  "transporte-comprador": "Transporte propio", "flota-vendedor": "Flota del vendedor",
+  flota: "Flota", vehiculos: "Vehículos", conductores: "Conductores",
+  retiros: "Retiros", reservas: "Reserva", operadores: "Operadores",
+  ofertas: "Ofertas", comparar: "Comparar", entregas: "Prueba de entrega",
+  // Tracking
+  tracking: "Tracking",
+  // Finanzas
+  facturas: "Facturas", comisiones: "Comisiones",
+  // Analítica
+  analitica: "Analítica",
+  // ERP
+  erp: "ERP / Odoo",
+  // Checkout
+  checkout: "Checkout",
+  reviews: "Reputación",
+  perfil: "Mi perfil",
 };
 
 const MOCK_NOTIFICATIONS = [

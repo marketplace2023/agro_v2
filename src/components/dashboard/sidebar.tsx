@@ -9,7 +9,7 @@ import {
   Warehouse, ClipboardList, BarChart2, LogOut, ChevronRight,
   ChevronDown, Store, AlertTriangle, RefreshCw, Star, Tag,
   Receipt, CreditCard, MapPin, Route, Box, FlaskConical,
-  Globe, Layers, Bell, Heart, RotateCcw, Search, Building2,
+  Globe, Layers, Bell, Heart, RotateCcw, Search, Building2, User,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 
@@ -26,6 +26,8 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
   comprador: [
     { label: "Mi dashboard", href: "/dashboard/comprador", icon: <LayoutDashboard size={16} /> },
     { label: "Mis órdenes", href: "/dashboard/comprador/ordenes", icon: <Package size={16} /> },
+    { label: "Mensajes", href: "/mensajes", icon: <Bell size={16} /> },
+    { label: "Notificaciones", href: "/notificaciones", icon: <Bell size={16} /> },
     { label: "Mis favoritos", href: "/favoritos", icon: <Heart size={16} /> },
     { label: "Reclamos", href: "/reclamos", icon: <AlertTriangle size={16} /> },
     { label: "Devoluciones", href: "/devoluciones", icon: <RotateCcw size={16} /> },
@@ -68,6 +70,35 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
       ],
     },
     { label: "Liquidaciones", href: "/dashboard/vendedor/liquidaciones", icon: <DollarSign size={16} /> },
+    {
+      label: "CRM", icon: <Users size={16} />,
+      children: [
+        { label: "Dashboard CRM", href: "/dashboard/crm" },
+        { label: "Empresas", href: "/crm/empresas" },
+        { label: "Contactos", href: "/crm/contactos" },
+        { label: "Leads", href: "/crm/leads" },
+        { label: "Oportunidades", href: "/crm/oportunidades" },
+        { label: "Pipeline", href: "/crm/pipeline" },
+        { label: "Actividades", href: "/crm/actividades" },
+        { label: "Agenda", href: "/crm/agenda" },
+        { label: "Segmentos", href: "/crm/segmentos" },
+        { label: "Reportes CRM", href: "/crm/reportes" },
+      ],
+    },
+    { label: "Mensajes", href: "/mensajes", icon: <Bell size={16} />, badge: "3" },
+    { label: "Notificaciones", href: "/notificaciones", icon: <Bell size={16} /> },
+    {
+      label: "Logística", icon: <Truck size={16} />,
+      children: [
+        { label: "Solicitudes de flete", href: "/logistica/solicitudes" },
+        { label: "Flota", href: "/logistica/flota" },
+        { label: "Vehículos", href: "/logistica/vehiculos" },
+        { label: "Conductores", href: "/logistica/conductores" },
+        { label: "Liquidaciones flete", href: "/logistica/liquidaciones" },
+        { label: "Incidencias", href: "/logistica/incidencias" },
+      ],
+    },
+    { label: "Analítica", href: "/analitica", icon: <BarChart2 size={16} /> },
   ],
   fabricante: [
     { label: "Mi dashboard", href: "/dashboard/fabricante", icon: <LayoutDashboard size={16} /> },
@@ -108,16 +139,19 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
   ],
   logistica: [
     { label: "Mi dashboard", href: "/dashboard/logistica", icon: <LayoutDashboard size={16} /> },
+    { label: "Solicitudes de flete", href: "/logistica/solicitudes", icon: <ClipboardList size={16} /> },
     {
-      label: "Despachos", icon: <Truck size={16} />,
+      label: "Mi flota", icon: <Truck size={16} />,
       children: [
-        { label: "Lista de despachos", href: "/dashboard/logistica/despachos" },
-        { label: "Nuevo despacho", href: "/dashboard/logistica/despachos/nuevo" },
+        { label: "Flota y flotas", href: "/logistica/flota" },
+        { label: "Vehículos", href: "/logistica/vehiculos" },
+        { label: "Conductores", href: "/logistica/conductores" },
       ],
     },
-    { label: "Rutas", href: "/dashboard/logistica/rutas", icon: <Route size={16} /> },
-    { label: "Prueba de entrega", href: "/dashboard/logistica/prueba-entrega", icon: <ClipboardList size={16} /> },
-    { label: "Incidencias", href: "/dashboard/logistica/incidencias", icon: <AlertTriangle size={16} /> },
+    { label: "Rastrear envío", href: "/tracking", icon: <Route size={16} /> },
+    { label: "Incidencias", href: "/logistica/incidencias", icon: <AlertTriangle size={16} /> },
+    { label: "Liquidaciones", href: "/logistica/liquidaciones", icon: <DollarSign size={16} /> },
+    { label: "Mensajes", href: "/mensajes", icon: <Bell size={16} /> },
   ],
   regulatorio: [
     { label: "Mi dashboard", href: "/dashboard/regulatorio", icon: <LayoutDashboard size={16} /> },
@@ -131,16 +165,19 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     { label: "Auditoría", href: "/dashboard/regulatorio/auditoria", icon: <ClipboardList size={16} /> },
   ],
   finanzas: [
-    { label: "Mi dashboard", href: "/dashboard/finanzas", icon: <LayoutDashboard size={16} /> },
+    { label: "Mi dashboard", href: "/finanzas/dashboard", icon: <LayoutDashboard size={16} /> },
     {
-      label: "Liquidaciones", icon: <DollarSign size={16} />,
+      label: "Facturación", icon: <Receipt size={16} />,
       children: [
-        { label: "Historial", href: "/dashboard/finanzas/liquidaciones" },
-        { label: "Nueva liquidación", href: "/dashboard/finanzas/liquidaciones/nueva" },
+        { label: "Facturas", href: "/finanzas/facturas" },
+        { label: "Comisiones", href: "/finanzas/comisiones" },
+        { label: "Conciliación", href: "/finanzas/conciliacion" },
       ],
     },
-    { label: "Conciliación", href: "/dashboard/finanzas/conciliacion", icon: <BarChart2 size={16} /> },
+    { label: "Liquidaciones flete", href: "/logistica/liquidaciones", icon: <DollarSign size={16} /> },
     { label: "Pagos", href: "/dashboard/finanzas/pagos", icon: <CreditCard size={16} /> },
+    { label: "ERP / Odoo", href: "/configuracion/erp", icon: <RefreshCw size={16} /> },
+    { label: "Analítica", href: "/analitica", icon: <BarChart2 size={16} /> },
   ],
   soporte: [
     { label: "Mi dashboard", href: "/dashboard/soporte", icon: <LayoutDashboard size={16} /> },
@@ -173,6 +210,18 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     { label: "Mis clientes", href: "/dashboard/representante/clientes", icon: <Users size={16} /> },
     { label: "Metas", href: "/dashboard/representante/metas", icon: <Star size={16} /> },
     { label: "Visitas", href: "/dashboard/representante/visitas", icon: <MapPin size={16} /> },
+    {
+      label: "CRM", icon: <Users size={16} />,
+      children: [
+        { label: "Leads", href: "/crm/leads" },
+        { label: "Oportunidades", href: "/crm/oportunidades" },
+        { label: "Pipeline", href: "/crm/pipeline" },
+        { label: "Actividades", href: "/crm/actividades" },
+        { label: "Agenda", href: "/crm/agenda" },
+      ],
+    },
+    { label: "Mensajes", href: "/mensajes", icon: <Bell size={16} />, badge: "3" },
+    { label: "Notificaciones", href: "/notificaciones", icon: <Bell size={16} /> },
   ],
   "experto-regional": [
     { label: "Mi dashboard", href: "/dashboard/experto-regional", icon: <LayoutDashboard size={16} /> },
@@ -196,8 +245,29 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
       ],
     },
     { label: "Superadmin", href: "/admin/superadmin", icon: <Shield size={16} /> },
-    { label: "Finanzas", href: "/dashboard/finanzas", icon: <DollarSign size={16} /> },
+    {
+      label: "CRM", icon: <Users size={16} />,
+      children: [
+        { label: "Dashboard CRM", href: "/dashboard/crm" },
+        { label: "Empresas", href: "/crm/empresas" },
+        { label: "Leads", href: "/crm/leads" },
+        { label: "Pipeline", href: "/crm/pipeline" },
+        { label: "Reportes", href: "/crm/reportes" },
+      ],
+    },
+    { label: "Mensajes", href: "/mensajes", icon: <Bell size={16} /> },
+    {
+      label: "Logística", icon: <Truck size={16} />,
+      children: [
+        { label: "Solicitudes", href: "/logistica/solicitudes" },
+        { label: "Incidencias", href: "/logistica/incidencias" },
+        { label: "Liquidaciones", href: "/logistica/liquidaciones" },
+      ],
+    },
+    { label: "Finanzas", href: "/finanzas/dashboard", icon: <DollarSign size={16} /> },
     { label: "Regulatorio", href: "/dashboard/regulatorio", icon: <Layers size={16} /> },
+    { label: "Analítica", href: "/analitica", icon: <BarChart2 size={16} /> },
+    { label: "ERP / Odoo", href: "/configuracion/erp", icon: <RefreshCw size={16} /> },
     { label: "Auditoría", href: "/admin/auditoria", icon: <ClipboardList size={16} /> },
   ],
 };
@@ -318,6 +388,9 @@ export function DashboardSidebar({ role, userName, userEmail }: SidebarProps) {
 
       {/* Footer */}
       <div className="p-2.5 border-t border-[var(--color-border-subtle)] space-y-0.5">
+        <Link href={`/dashboard/${role}/perfil`} className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-[var(--color-on-surface-variant)] hover:bg-[var(--color-surface-container-low)] transition-colors">
+          <User size={14} /> Mi perfil
+        </Link>
         <Link href="/" className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-[var(--color-on-surface-variant)] hover:bg-[var(--color-surface-container-low)] transition-colors">
           <Store size={14} /> Portal público
         </Link>
