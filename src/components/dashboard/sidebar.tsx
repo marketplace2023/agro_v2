@@ -9,7 +9,7 @@ import {
   Warehouse, ClipboardList, BarChart2, LogOut, ChevronRight,
   ChevronDown, Store, AlertTriangle, RefreshCw, Star, Tag,
   Receipt, CreditCard, MapPin, Route, Box, FlaskConical,
-  Globe, Layers, Bell, Heart, RotateCcw, Search, Building2,
+  Globe, Layers, Bell, Heart, RotateCcw, Search, Building2, User,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 
@@ -388,7 +388,7 @@ export function DashboardSidebar({ role, userName, userEmail }: SidebarProps) {
 
       {/* Footer */}
       <div className="p-2.5 border-t border-[var(--color-border-subtle)] space-y-0.5">
-        <Link href="/perfil" className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-[var(--color-on-surface-variant)] hover:bg-[var(--color-surface-container-low)] transition-colors">
+        <Link href={`/dashboard/${role}/perfil`} className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-[var(--color-on-surface-variant)] hover:bg-[var(--color-surface-container-low)] transition-colors">
           <User size={14} /> Mi perfil
         </Link>
         <Link href="/" className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-[var(--color-on-surface-variant)] hover:bg-[var(--color-surface-container-low)] transition-colors">
