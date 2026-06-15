@@ -15,6 +15,8 @@ const URGENCIES = [
 export default function AsesoriaAgronomicaPage() {
   const [step, setStep] = useState(1);
   const [submitted, setSubmitted] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [diagId, setDiagId] = useState("");
   const [form, setForm] = useState({
     crop: "", stage: "", symptoms: [] as string[],
     description: "", photos: [] as string[],
@@ -32,7 +34,7 @@ export default function AsesoriaAgronomicaPage() {
         <div className="text-5xl mb-4">✅</div>
         <h1 className="text-2xl font-bold text-[var(--color-on-surface)] mb-2">Solicitud de diagnóstico recibida</h1>
         <p className="text-sm text-[var(--color-on-surface-variant)] mb-2">
-          Tu solicitud fue registrada con ID: <strong>DIAG-{Math.floor(Math.random() * 9000 + 1000)}</strong>
+          Tu solicitud fue registrada con ID: <strong>{diagId}</strong>
         </p>
         <p className="text-sm text-[var(--color-on-surface-variant)] mb-6">
           Un asesor agronómico especialista en {form.crop} te contactará dentro del plazo acordado.
@@ -148,9 +150,37 @@ export default function AsesoriaAgronomicaPage() {
             </div>
             <div className="flex gap-3">
               <button type="button" onClick={() => setStep(2)} className="px-4 py-2.5 border border-[var(--color-border-subtle)] rounded-lg text-sm font-medium hover:bg-[var(--color-surface-container-low)]">← Anterior</button>
-              <button type="button" onClick={() => { if (!form.contact) return; setSubmitted(true); }}
-                className="flex-1 py-2.5 bg-[var(--color-primary)] text-white font-medium rounded-lg hover:bg-[var(--color-primary-container)] transition-colors">
-                Enviar solicitud ✓
+              <button
+                type="button"
+                disabled={!form.contact || sending}
+                onClick={async () => {
+                  if (!form.contact) return;
+                  setSending(true);
+                  try {
+                    const res = await fetch("/api/diagnosticos", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        cropType: form.crop,
+                        symptoms: form.symptoms,
+                        urgency: form.urgency,
+                        description: form.description,
+                        location: form.location,
+                        stage: form.stage,
+                      }),
+                    });
+                    const data = await res.json().catch(() => ({}));
+                    setDiagId(data.id ?? `DIAG-${Date.now().toString().slice(-6)}`);
+                  } catch {
+                    setDiagId(`DIAG-${Date.now().toString().slice(-6)}`);
+                  } finally {
+                    setSending(false);
+                    setSubmitted(true);
+                  }
+                }}
+                className="flex-1 py-2.5 bg-[var(--color-primary)] text-white font-medium rounded-lg hover:bg-[var(--color-primary-container)] transition-colors disabled:opacity-60"
+              >
+                {sending ? "Enviando…" : "Enviar solicitud ✓"}
               </button>
             </div>
           </>

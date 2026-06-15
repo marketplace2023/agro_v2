@@ -14,39 +14,59 @@ const PROBLEM_TYPES = [
   { value: "abiotico", label: "Estrés abiótico (sequía, calor, salinidad)", emoji: "🌡️" },
 ];
 
-const DIAGNOSES: Record<string, {
-  title: string; description: string;
+interface DiagnosisResult {
+  id: string;
+  name: string;
+  type: string;
+  description: string | null;
+  symptoms: string | null;
+  causes: string | null;
   products: { name: string; slug: string; type: string }[];
-}[]> = {
-  "nutricional-Maíz": [
-    { title: "Deficiencia de nitrógeno", description: "Hojas amarillentas desde las más viejas, crecimiento lento. La planta no tiene suficiente nitrógeno disponible.", products: [{ name: "Urea 46%", slug: "urea-granulada-46-nitrogeno", type: "Fertilizante" }, { name: "Nitrato de amonio", slug: "nitrato-amonio", type: "Fertilizante" }] },
-    { title: "Deficiencia de zinc", description: "Rayas blancas o amarillas en hojas jóvenes. Las hojas emergentes son pequeñas y arrugadas.", products: [{ name: "Sulfato de zinc", slug: "sulfato-zinc-foliar", type: "Micronutriente" }] },
-  ],
-  "plaga-Tomate": [
-    { title: "Mosca blanca (Bemisia tabaci)", description: "Presencia de insectos blancos pequeños en el envés. Hojas amarillas, fumagina negra.", products: [{ name: "Imidacloprid 350 SC", slug: "imidacloprid-350-sc", type: "Insecticida" }, { name: "Spinosad (bio)", slug: "spinosad-biologico", type: "Biológico" }] },
-    { title: "Trips (Frankliniella)", description: "Raspaduras plateadas en hojas y frutos. Transmite TSWV.", products: [{ name: "Abamectina 1.8 EC", slug: "abamectina-18-ec", type: "Insecticida" }] },
-  ],
-};
+}
 
 export default function ProblemasAgricolasPage() {
   const [problemType, setProblemType] = useState("");
   const [crop, setCrop] = useState("");
   const [symptoms, setSymptoms] = useState("");
-  const [results, setResults] = useState<typeof DIAGNOSES[string] | null>(null);
+  const [results, setResults] = useState<DiagnosisResult[] | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  function handleDiagnose(e: React.FormEvent) {
+  async function handleDiagnose(e: React.FormEvent) {
     e.preventDefault();
-    const key = `${problemType}-${crop}`;
-    const found = DIAGNOSES[key] ?? [];
-    setResults(
-      found.length > 0 ? found : [
-        {
-          title: "Consulta con un experto",
-          description: `No encontramos un diagnóstico automático para "${symptoms}" en ${crop || "tu cultivo"}. Te recomendamos consultar con un asesor agronómico para un diagnóstico preciso.`,
-          products: [],
-        },
-      ]
-    );
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (problemType) params.set("type", problemType);
+      if (crop) params.set("crop", crop);
+      const res = await fetch(`/api/agroknowledge?${params}`);
+      const data = await res.json();
+      const items: DiagnosisResult[] = data.data ?? [];
+      setResults(
+        items.length > 0 ? items : [
+          {
+            id: "fallback",
+            name: "Consulta con un experto",
+            type: problemType,
+            description: `No encontramos un diagnóstico automático para "${symptoms}" en ${crop || "tu cultivo"}. Te recomendamos consultar con un asesor agronómico para un diagnóstico preciso.`,
+            symptoms: null,
+            causes: null,
+            products: [],
+          },
+        ]
+      );
+    } catch {
+      setResults([{
+        id: "error",
+        name: "Sin conexión",
+        type: "",
+        description: "No se pudo obtener el diagnóstico. Intenta de nuevo.",
+        symptoms: null,
+        causes: null,
+        products: [],
+      }]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -96,9 +116,12 @@ export default function ProblemasAgricolasPage() {
           />
         </div>
 
-        <button type="submit"
-          className="w-full py-2.5 bg-[var(--color-primary)] text-white font-medium rounded-lg hover:bg-[var(--color-primary-container)] transition-colors">
-          🔍 Diagnosticar
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full py-2.5 bg-[var(--color-primary)] text-white font-medium rounded-lg hover:bg-[var(--color-primary-container)] transition-colors disabled:opacity-60"
+        >
+          {loading ? "Buscando…" : "🔍 Diagnosticar"}
         </button>
       </form>
 
@@ -106,27 +129,41 @@ export default function ProblemasAgricolasPage() {
       {results && (
         <div className="mt-6 space-y-4">
           <h2 className="font-semibold text-[var(--color-on-surface)]">Resultados del diagnóstico</h2>
-          {results.map((result, i) => (
-            <div key={i} className="bg-white rounded-xl border border-[var(--color-border-subtle)] p-5">
-              <h3 className="font-semibold text-[var(--color-on-surface)] mb-1">{result.title}</h3>
-              <p className="text-sm text-[var(--color-on-surface-variant)] mb-3">{result.description}</p>
+          {results.map((result) => (
+            <div key={result.id} className="bg-white rounded-xl border border-[var(--color-border-subtle)] p-5">
+              <h3 className="font-semibold text-[var(--color-on-surface)] mb-1">{result.name}</h3>
+              {result.description && (
+                <p className="text-sm text-[var(--color-on-surface-variant)] mb-2">{result.description}</p>
+              )}
+              {result.symptoms && (
+                <p className="text-xs text-[var(--color-on-surface-variant)] mb-2">
+                  <span className="font-medium">Síntomas: </span>{result.symptoms}
+                </p>
+              )}
+              {result.causes && (
+                <p className="text-xs text-[var(--color-on-surface-variant)] mb-3">
+                  <span className="font-medium">Causas: </span>{result.causes}
+                </p>
+              )}
               {result.products.length > 0 && (
                 <>
                   <p className="text-xs font-medium text-[var(--color-on-surface)] mb-2">Productos recomendados:</p>
                   <div className="flex flex-wrap gap-2">
                     {result.products.map((p) => (
-                      <Link key={p.slug} href={`/productos/${p.slug}`}
-                        className="flex items-center gap-1.5 text-xs bg-[var(--color-surface-container)] hover:bg-[var(--color-primary)] hover:text-white px-3 py-1.5 rounded-lg border border-[var(--color-border-subtle)] transition-colors">
+                      <Link
+                        key={p.slug}
+                        href={`/productos/${p.slug}`}
+                        className="flex items-center gap-1.5 text-xs bg-[var(--color-surface-container)] hover:bg-[var(--color-primary)] hover:text-white px-3 py-1.5 rounded-lg border border-[var(--color-border-subtle)] transition-colors"
+                      >
                         🌱 {p.name}
-                        <span className="text-[var(--color-on-surface-variant)]">· {p.type}</span>
+                        <span className="text-[var(--color-on-surface-variant)] group-hover:text-white">· {p.type}</span>
                       </Link>
                     ))}
                   </div>
                 </>
               )}
               <div className="mt-4 pt-3 border-t border-[var(--color-border-subtle)]">
-                <Link href="/asesoria-agronomica"
-                  className="text-sm text-[var(--color-primary)] hover:underline">
+                <Link href="/asesoria-agronomica" className="text-sm text-[var(--color-primary)] hover:underline">
                   📋 Solicitar diagnóstico profesional con un experto →
                 </Link>
               </div>

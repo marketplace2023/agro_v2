@@ -1,67 +1,140 @@
 "use client";
 
-import { useState } from "react";
-import { AlertCircle, Search, Plus, Filter, ChevronRight, Phone, Calendar, User } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { AlertCircle, Search, Plus, ChevronRight, Phone, Calendar, User, Building2, Package } from "lucide-react";
 import Link from "next/link";
 
-const LEADS = [
-  { id: "LED-001", nombre: "Finca El Progreso", contacto: "Jorge Quintero", telefono: "+57 316 000 1111", origen: "WhatsApp", producto: "Fertilizantes NPK", valorEst: "$12,000", estado: "Nuevo lead", fecha: "2026-06-10", vendedor: "Luis Pérez", prioritario: true },
-  { id: "LED-002", nombre: "Agropecuaria Simón", contacto: "Simón Restrepo", telefono: "+57 313 222 3333", origen: "Web", producto: "Herbicidas selectivos", valorEst: "$8,500", estado: "Contactado", fecha: "2026-06-09", vendedor: "Luis Pérez", prioritario: false },
-  { id: "LED-003", nombre: "Granjas del Sur", contacto: "Olga Muñoz", telefono: "+57 318 444 5555", origen: "Referido", producto: "Insecticidas biológicos", valorEst: "$5,200", estado: "Necesidad identificada", fecha: "2026-06-08", vendedor: "María Gómez", prioritario: true },
-  { id: "LED-004", nombre: "Hacienda La Esperanza", contacto: "Andrés Lozano", telefono: "+57 322 666 7777", origen: "Expo Agro", producto: "Fungicidas sistémicos", valorEst: "$18,900", estado: "Oferta en preparación", fecha: "2026-06-07", vendedor: "María Gómez", prioritario: false },
-  { id: "LED-005", nombre: "Campo Verde S.A.S.", contacto: "Rosa Jiménez", telefono: "+57 319 888 9999", origen: "LinkedIn", producto: "Fertilizantes foliares", valorEst: "$7,100", estado: "Nuevo lead", fecha: "2026-06-11", vendedor: "Luis Pérez", prioritario: false },
-  { id: "LED-006", nombre: "Cultivos Orgánicos Nariño", contacto: "Felipe Castro", telefono: "+57 314 012 3456", origen: "Web", producto: "Biológicos", valorEst: "$3,400", estado: "Contactado", fecha: "2026-06-06", vendedor: "Carlos Díaz", prioritario: false },
-  { id: "LED-007", nombre: "Inversiones Agro del Caribe", contacto: "Luisa Vargas", telefono: "+57 320 345 6789", origen: "Referido", producto: "Nutrición foliar premium", valorEst: "$24,000", estado: "Necesidad identificada", fecha: "2026-06-05", vendedor: "María Gómez", prioritario: true },
-];
+interface OrderSummary {
+  id: string;
+  totalAmount: number;
+  status: string;
+  createdAt: string;
+}
 
-const ESTADO_COLOR: Record<string, string> = {
-  "Nuevo lead": "bg-slate-100 text-slate-600",
-  "Contactado": "bg-blue-100 text-blue-700",
-  "Necesidad identificada": "bg-violet-100 text-violet-700",
-  "Oferta en preparación": "bg-amber-100 text-amber-700",
+interface CompanyUser {
+  id: string;
+  email: string;
+  profile?: { firstName: string; lastName: string; phone?: string | null } | null;
+}
+
+interface Company {
+  id: string;
+  name: string;
+  commercialName?: string | null;
+  type: string;
+  country: string;
+  city?: string | null;
+  verified: boolean;
+  createdAt: string;
+  users: CompanyUser[];
+  orders: OrderSummary[];
+  credit?: { limit: number; status: string } | null;
+}
+
+const TYPE_LABEL: Record<string, string> = {
+  compradora: "Compradora",
+  vendedora: "Vendedora",
+  fabricante: "Fabricante",
+  distribuidora: "Distribuidora",
 };
 
-const ETAPAS = ["Todos", "Nuevo lead", "Contactado", "Necesidad identificada", "Oferta en preparación"];
+const TYPE_COLOR: Record<string, string> = {
+  compradora: "bg-green-100 text-green-700",
+  vendedora: "bg-blue-100 text-blue-700",
+  fabricante: "bg-orange-100 text-orange-700",
+  distribuidora: "bg-indigo-100 text-indigo-700",
+};
+
+function companyStatus(c: Company): { label: string; color: string } {
+  if (c.orders.length === 0) return { label: "Sin órdenes", color: "bg-slate-100 text-slate-600" };
+  const last = new Date(c.orders[0].createdAt);
+  const daysSince = (Date.now() - last.getTime()) / (1000 * 60 * 60 * 24);
+  if (daysSince <= 30) return { label: "Activo", color: "bg-emerald-100 text-emerald-700" };
+  if (daysSince <= 90) return { label: "Reciente", color: "bg-blue-100 text-blue-700" };
+  return { label: "Inactivo", color: "bg-amber-100 text-amber-700" };
+}
+
+function totalValue(c: Company) {
+  return c.orders.reduce((s, o) => s + o.totalAmount, 0);
+}
+
+function primaryContact(c: Company) {
+  const u = c.users[0];
+  if (!u) return null;
+  const name = u.profile ? `${u.profile.firstName} ${u.profile.lastName}`.trim() : u.email;
+  return { name: name || u.email, phone: u.profile?.phone ?? null };
+}
+
+const ETAPAS = ["Todos", "compradora", "vendedora", "fabricante", "distribuidora"];
 
 export default function LeadsPage() {
-  const [busqueda, setBusqueda] = useState("");
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
   const [etapa, setEtapa] = useState("Todos");
 
-  const filtrados = LEADS.filter((l) => {
-    const coincideBusqueda =
-      l.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-      l.contacto.toLowerCase().includes(busqueda.toLowerCase());
-    const coincideEtapa = etapa === "Todos" || l.estado === etapa;
-    return coincideBusqueda && coincideEtapa;
-  });
+  const load = useCallback(() => {
+    setLoading(true);
+    const params = new URLSearchParams({
+      limit: "30",
+      ...(search && { q: search }),
+    });
+    fetch(`/api/crm/leads?${params}`)
+      .then(r => r.json())
+      .then(d => {
+        setCompanies(d.data ?? []);
+        setTotal(d.total ?? 0);
+      })
+      .finally(() => setLoading(false));
+  }, [search]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const filtered = etapa === "Todos"
+    ? companies
+    : companies.filter(c => c.type === etapa);
+
+  const valorTotal = companies.reduce((s, c) => s + totalValue(c), 0);
+  const verificadas = companies.filter(c => c.verified).length;
+  const conOrdenes = companies.filter(c => c.orders.length > 0).length;
 
   return (
     <div className="space-y-6 max-w-7xl">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-headline-md font-bold flex items-center gap-2">
-            <AlertCircle size={22} /> Leads
+            <AlertCircle size={22} /> Empresas / Leads
           </h1>
-          <p className="text-sm text-[var(--color-on-surface-variant)] mt-1">{LEADS.length} leads activos</p>
+          {!loading && (
+            <p className="text-sm text-[var(--color-on-surface-variant)] mt-1">
+              {total} empresas registradas
+            </p>
+          )}
         </div>
-        <button className="flex items-center gap-2 text-sm bg-[var(--color-primary)] text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity">
-          <Plus size={15} /> Nuevo lead
+        <button className="flex items-center gap-2 text-sm bg-[var(--color-primary)] text-white px-4 py-2 rounded-lg hover:opacity-90">
+          <Plus size={15} /> Nueva empresa
         </button>
       </div>
 
+      {/* Búsqueda + filtro tipo */}
       <div className="flex flex-col sm:flex-row gap-3">
-        <div className="flex-1 relative">
+        <form
+          className="flex-1 relative"
+          onSubmit={e => { e.preventDefault(); setSearch(searchInput); }}
+        >
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-on-surface-variant)]" />
           <input
             type="text"
-            placeholder="Buscar por empresa o contacto..."
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Buscar por empresa..."
+            value={searchInput}
+            onChange={e => setSearchInput(e.target.value)}
             className="w-full pl-9 pr-4 py-2 text-sm border border-[var(--color-border-subtle)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-opacity-20"
           />
-        </div>
+        </form>
         <div className="flex gap-2 overflow-x-auto pb-1">
-          {ETAPAS.map((e) => (
+          {ETAPAS.map(e => (
             <button
               key={e}
               onClick={() => setEtapa(e)}
@@ -71,7 +144,7 @@ export default function LeadsPage() {
                   : "border border-[var(--color-border-subtle)] text-[var(--color-on-surface-variant)] hover:bg-[var(--color-surface-container)]"
               }`}
             >
-              {e}
+              {e === "Todos" ? "Todos" : (TYPE_LABEL[e] ?? e)}
             </button>
           ))}
         </div>
@@ -80,13 +153,13 @@ export default function LeadsPage() {
       {/* Métricas */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
-          { label: "Valor total estimado", valor: "$79,100", sub: "todos los leads" },
-          { label: "Nuevos esta semana", valor: "3", sub: "LED-005, LED-001, LED-002" },
-          { label: "Prioritarios", valor: LEADS.filter(l => l.prioritario).length.toString(), sub: "requieren acción" },
-          { label: "Tiempo promedio", valor: "4.2 días", sub: "para primer contacto" },
-        ].map((s) => (
+          { label: "Total empresas",    valor: total,                    sub: "en plataforma" },
+          { label: "Con órdenes",       valor: conOrdenes,               sub: "han comprado" },
+          { label: "Verificadas",       valor: verificadas,              sub: "empresas validadas" },
+          { label: "Valor total",       valor: `$${valorTotal.toLocaleString("es-CO")}`, sub: "en órdenes recientes" },
+        ].map(s => (
           <div key={s.label} className="bg-white rounded-xl border border-[var(--color-border-subtle)] p-4">
-            <p className="text-xl font-bold">{s.valor}</p>
+            <p className="text-xl font-bold">{loading ? "—" : s.valor}</p>
             <p className="text-xs font-medium text-[var(--color-on-surface)] mt-0.5">{s.label}</p>
             <p className="text-[10px] text-[var(--color-on-surface-variant)] mt-0.5">{s.sub}</p>
           </div>
@@ -94,47 +167,70 @@ export default function LeadsPage() {
       </div>
 
       {/* Lista */}
-      <div className="space-y-3">
-        {filtrados.map((l) => (
-          <Link
-            key={l.id}
-            href={`/crm/oportunidades/${l.id}`}
-            className="flex items-start gap-4 bg-white rounded-xl border border-[var(--color-border-subtle)] p-4 hover:shadow-sm transition-shadow"
-          >
-            {l.prioritario && (
-              <div className="w-1 self-stretch bg-red-400 rounded-full shrink-0" />
-            )}
-            <div className="flex-1 min-w-0">
-              <div className="flex flex-wrap items-center gap-2 mb-1">
-                <p className="text-sm font-semibold">{l.nombre}</p>
-                {l.prioritario && (
-                  <span className="text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-medium">Prioritario</span>
-                )}
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${ESTADO_COLOR[l.estado]}`}>
-                  {l.estado}
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-[var(--color-on-surface-variant)]">
-                <span className="flex items-center gap-1"><User size={10} /> {l.contacto}</span>
-                <span className="flex items-center gap-1"><Phone size={10} /> {l.telefono}</span>
-                <span className="flex items-center gap-1"><Calendar size={10} /> {l.fecha}</span>
-                <span>Origen: {l.origen}</span>
-                <span>Vendedor: {l.vendedor}</span>
-              </div>
-              <p className="text-xs mt-1.5">
-                Producto: <span className="font-medium">{l.producto}</span>
-                <span className="ml-3 font-bold text-[var(--color-primary)]">{l.valorEst}</span>
-              </p>
+      {loading ? (
+        <div className="py-16 text-center text-[var(--color-on-surface-variant)]">
+          <Building2 size={32} className="mx-auto mb-2 opacity-30 animate-pulse" />
+          <p className="text-sm">Cargando empresas...</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map(c => {
+            const contact = primaryContact(c);
+            const status = companyStatus(c);
+            const val = totalValue(c);
+            const typeCls = TYPE_COLOR[c.type] ?? "bg-gray-100 text-gray-600";
+            return (
+              <Link
+                key={c.id}
+                href={`/crm/clientes/${c.id}/historial`}
+                className="flex items-start gap-4 bg-white rounded-xl border border-[var(--color-border-subtle)] p-4 hover:shadow-sm transition-shadow"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 mb-1">
+                    <p className="text-sm font-semibold">{c.commercialName ?? c.name}</p>
+                    {c.verified && (
+                      <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-medium">Verificada</span>
+                    )}
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${typeCls}`}>
+                      {TYPE_LABEL[c.type] ?? c.type}
+                    </span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${status.color}`}>
+                      {status.label}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-[var(--color-on-surface-variant)]">
+                    {contact && (
+                      <span className="flex items-center gap-1"><User size={10} /> {contact.name}</span>
+                    )}
+                    {contact?.phone && (
+                      <span className="flex items-center gap-1"><Phone size={10} /> {contact.phone}</span>
+                    )}
+                    <span className="flex items-center gap-1"><Calendar size={10} /> {new Date(c.createdAt).toLocaleDateString("es-CO")}</span>
+                    <span>{c.city ? `${c.city}, ` : ""}{c.country}</span>
+                  </div>
+                  <p className="text-xs mt-1.5 flex items-center gap-3">
+                    <span className="flex items-center gap-1"><Package size={10} /> {c.orders.length} órdenes</span>
+                    {val > 0 && (
+                      <span className="font-bold text-[var(--color-primary)]">${val.toLocaleString("es-CO")}</span>
+                    )}
+                    {c.credit && (
+                      <span className="text-[var(--color-on-surface-variant)]">
+                        Crédito: ${c.credit.limit.toLocaleString("es-CO")}
+                      </span>
+                    )}
+                  </p>
+                </div>
+                <ChevronRight size={16} className="text-[var(--color-on-surface-variant)] mt-1 shrink-0" />
+              </Link>
+            );
+          })}
+          {filtered.length === 0 && (
+            <div className="py-10 text-center text-sm text-[var(--color-on-surface-variant)] bg-white rounded-xl border border-[var(--color-border-subtle)]">
+              No se encontraron empresas
             </div>
-            <ChevronRight size={16} className="text-[var(--color-on-surface-variant)] mt-1 shrink-0" />
-          </Link>
-        ))}
-        {filtrados.length === 0 && (
-          <div className="py-10 text-center text-sm text-[var(--color-on-surface-variant)] bg-white rounded-xl border border-[var(--color-border-subtle)]">
-            No se encontraron leads
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       <div className="flex gap-4 text-xs">
         <Link href="/crm/oportunidades" className="text-[var(--color-primary)] hover:underline flex items-center gap-1">
